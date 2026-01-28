@@ -104,7 +104,7 @@ const LoginPage = ({ onNavigate, onLogin }) => {
         </div>
 
         <p className="text-center text-slate-500 text-xs mt-6">
-          Prepared By: Sami Alsuwat | إعداد: سامي السواط
+          Prepared By: Saad Alamri | إعداد: سعد العمري
         </p>
       </div>
     </div>
