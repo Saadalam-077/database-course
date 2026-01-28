@@ -12,7 +12,7 @@ const RegisterPage = ({ onNavigate, onRegister }) => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const sections = ['101', '102', '103', '104', '105', '106', '107', '108'];
+  const sections = ['1512', '1515', '572', '629', '650', '651'];
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
