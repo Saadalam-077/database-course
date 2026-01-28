@@ -159,8 +159,8 @@ const HomePage = ({ user, onNavigate, onLogout }) => {
             </a>
             <div className="text-center md:text-left">
               <p className="text-slate-400">Prepared by | إعداد</p>
-              <p className="text-white font-semibold text-lg">Sami Alsuwat</p>
-              <p className="text-amber-300/70 font-arabic">سامي السواط</p>
+              <p className="text-white font-semibold text-lg">Saad Alamri</p>
+              <p className="text-amber-300/70 font-arabic">سعد العمري</p>
             </div>
           </div>
         </div>
