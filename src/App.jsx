@@ -4,11 +4,15 @@ import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import WeekLesson from './pages/WeekLesson';
 import ProfilePage from './pages/ProfilePage';
+import AdminDashboard from './pages/AdminDashboard';
+
 
 const App = () => {
   const [currentPage, setCurrentPage] = useState('login');
   const [currentUser, setCurrentUser] = useState(null);
   const [students, setStudents] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+
 
   // Load students from localStorage on mount
   useEffect(() => {
@@ -94,6 +98,11 @@ const App = () => {
   const handleLogout = () => {
     setCurrentUser(null);
     setCurrentPage('login');
+    if (studentNumber === 'admin' && password === 'Saad@1234') {
+  setIsAdmin(true);
+  setCurrentPage('admin');
+  return { success: true };
+}
   };
 
   const calculateGrade = (score) => {
@@ -149,6 +158,9 @@ const App = () => {
   const renderPage = () => {
     if (!currentUser && currentPage !== 'login' && currentPage !== 'register') {
       return <LoginPage onNavigate={handleNavigate} onLogin={handleLogin} />;
+      if (isAdmin && currentPage === 'admin') {
+  return <AdminDashboard students={students} onNavigate={handleNavigate} onLogout={handleLogout} />;
+}
     }
 
     switch (currentPage) {
