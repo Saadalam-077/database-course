@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import RecoveryPage from './pages/RecoveryPage';
 import HomePage from './pages/HomePage';
 import WeekLesson from './pages/WeekLesson';
 import ProfilePage from './pages/ProfilePage';
@@ -27,7 +28,7 @@ const App = () => {
           // Verify user still exists in database
           const { data: verifiedUser, error } = await supabase
             .from('students')
-            .select('*')
+            .select('id, student_number, student_name, section_number, progress, total_score, overall_grade, registered_at')
             .eq('id', parsedUser.id)
             .single();
           
@@ -37,7 +38,6 @@ const App = () => {
               id: verifiedUser.id,
               studentNumber: verifiedUser.student_number,
               studentName: verifiedUser.student_name,
-              password: verifiedUser.password,
               sectionNumber: verifiedUser.section_number,
               progress: verifiedUser.progress || getInitialProgress(),
               totalScore: verifiedUser.total_score || 0,
@@ -68,7 +68,7 @@ const App = () => {
     try {
       const { data, error } = await supabase
         .from('students')
-        .select('*')
+        .select('id, student_number, student_name, section_number, progress, total_score, overall_grade, registered_at')
         .order('registered_at', { ascending: false });
 
       if (error) {
@@ -81,7 +81,6 @@ const App = () => {
         id: student.id,
         studentNumber: student.student_number,
         studentName: student.student_name,
-        password: student.password,
         sectionNumber: student.section_number,
         progress: student.progress || getInitialProgress(),
         totalScore: student.total_score || 0,
@@ -127,44 +126,26 @@ const App = () => {
 
   const handleRegister = async (studentData) => {
     try {
-      // Check if student number already exists
-      const { data: existing, error: checkError } = await supabase
-        .from('students')
-        .select('student_number')
-        .eq('student_number', studentData.studentNumber)
-        .maybeSingle();
-
-      if (existing) {
-        return { success: false, message: 'Student number already registered! | الرقم الجامعي مسجل بالفعل!' };
-      }
-
-      // Insert new student into Supabase
-      const { data, error } = await supabase
-        .from('students')
-        .insert([{
-          student_number: studentData.studentNumber,
-          student_name: studentData.studentName,
-          password: studentData.password,
-          section_number: studentData.sectionNumber,
-          progress: getInitialProgress(),
-          total_score: 0,
-          overall_grade: 'N/A'
-        }])
-        .select()
-        .single();
+      const { data: result, error } = await supabase.rpc('db_register_student', {
+        p_student_name: studentData.studentName.trim(),
+        p_student_number: studentData.studentNumber.trim(),
+        p_section_number: studentData.sectionNumber,
+        p_password: studentData.password
+      });
 
       if (error) {
         console.error('Registration error:', error);
-        return { success: false, message: 'Registration failed. Please try again. | فشل التسجيل. حاول مرة أخرى.' };
+        return 'error';
       }
+      if (!result?.success) return false;
 
       // Reload students list
       await loadStudents();
-
-      return { success: true, message: 'Registration successful! | تم التسجيل بنجاح!' };
+      setTimeout(() => setCurrentPage('login'), 1500);
+      return true;
     } catch (err) {
       console.error('Registration error:', err);
-      return { success: false, message: 'Registration failed. Please try again. | فشل التسجيل. حاول مرة أخرى.' };
+      return 'error';
     }
   };
 
@@ -179,19 +160,17 @@ const App = () => {
 
     try {
       // Find student in Supabase
-      const { data: student, error } = await supabase
-        .from('students')
-        .select('*')
-        .eq('student_number', studentNumber)
-        .eq('password', password)
-        .maybeSingle();
+      const { data: student, error } = await supabase.rpc('db_student_login', {
+        p_student_number: studentNumber.trim(),
+        p_password: password
+      });
 
       if (error) {
         console.error('Login query error:', error);
         return { success: false, message: 'Login failed. Please try again. | فشل تسجيل الدخول. حاول مرة أخرى.' };
       }
 
-      if (!student) {
+      if (!student?.success) {
         return { success: false, message: 'Invalid student number or password! | الرقم الجامعي أو كلمة المرور غير صحيحة!' };
       }
 
@@ -200,7 +179,6 @@ const App = () => {
         id: student.id,
         studentNumber: student.student_number,
         studentName: student.student_name,
-        password: student.password,
         sectionNumber: student.section_number,
         progress: student.progress || getInitialProgress(),
         totalScore: student.total_score || 0,
@@ -215,6 +193,19 @@ const App = () => {
       console.error('Login error:', err);
       return { success: false, message: 'Login failed. Please try again. | فشل تسجيل الدخول. حاول مرة أخرى.' };
     }
+  };
+
+  const handlePasswordRecovery = async (studentNumber, recoveryCode, newPassword) => {
+    const { data, error } = await supabase.rpc('db_reset_student_password', {
+      p_student_number: studentNumber.trim(),
+      p_recovery_code: recoveryCode.trim(),
+      p_new_password: newPassword
+    });
+    if (error) {
+      console.error('Password recovery error:', error);
+      return false;
+    }
+    return data === true;
   };
 
   const handleLogout = () => {
@@ -313,7 +304,7 @@ const App = () => {
       return <AdminDashboard students={students} onNavigate={handleNavigate} onLogout={handleLogout} onRefresh={loadStudents} />;
     }
 
-    if (!currentUser && currentPage !== 'login' && currentPage !== 'register') {
+    if (!currentUser && currentPage !== 'login' && currentPage !== 'register' && currentPage !== 'recover') {
       return <LoginPage onNavigate={handleNavigate} onLogin={handleLogin} />;
     }
 
@@ -322,6 +313,8 @@ const App = () => {
         return <LoginPage onNavigate={handleNavigate} onLogin={handleLogin} />;
       case 'register':
         return <RegisterPage onNavigate={handleNavigate} onRegister={handleRegister} />;
+      case 'recover':
+        return <RecoveryPage onNavigate={handleNavigate} onRecover={handlePasswordRecovery} />;
       case 'home':
         return <HomePage user={currentUser} onNavigate={handleNavigate} onLogout={handleLogout} />;
       case 'profile':
