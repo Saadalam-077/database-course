@@ -19,8 +19,8 @@ const RegisterPage = ({ onRegister, onNavigate }) => {
       setError('Student number must be 8 digits | الرقم الجامعي يجب أن يكون 8 أرقام');
       return;
     }
-    if (form.password.length < 4) {
-      setError('Password must be at least 4 characters | كلمة المرور يجب أن تكون 4 أحرف على الأقل');
+    if (form.password.length < 8) {
+      setError('Password must be at least 8 characters | كلمة المرور يجب ألا تقل عن 8 أحرف');
       return;
     }
 
@@ -28,7 +28,9 @@ const RegisterPage = ({ onRegister, onNavigate }) => {
     try {
       const result = await onRegister(form);
       if (result === true) {
-        setSuccess('Registration successful! Redirecting... | تم التسجيل بنجاح! جاري التحويل...');
+        setSuccess('Registration successful! Redirecting to login... | تم التسجيل بنجاح! جاري التحويل لتسجيل الدخول...');
+      } else if (result === 'error') {
+        setError('Registration failed. Please try again. | فشل التسجيل. حاول مرة أخرى.');
       } else {
         setError('Student number already exists | الرقم الجامعي مسجل مسبقاً');
       }
